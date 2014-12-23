@@ -31,11 +31,19 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"cross_zone_load_balancing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"availability_zones": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			"instances": &schema.Schema{
@@ -50,11 +58,14 @@ func resourceAwsElb() *schema.Resource {
 
 			// TODO: could be not ForceNew
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			// TODO: could be not ForceNew
@@ -167,11 +178,11 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("availability_zones"); ok {
-		elbOpts.AvailZone = expandStringList(v.([]interface{}))
+		elbOpts.AvailZone = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		elbOpts.SecurityGroups = expandStringList(v.([]interface{}))
+		elbOpts.SecurityGroups = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
@@ -249,6 +260,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", lb.LoadBalancerName)
 	d.Set("dns_name", lb.DNSName)
 	d.Set("internal", lb.Scheme == "internal")
+	d.Set("availability_zones", lb.AvailabilityZones)
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.Listeners))
 	d.Set("security_groups", lb.SecurityGroups)
@@ -302,6 +314,22 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("instances")
+	}
+
+	log.Println("[INFO] outside modify attributes")
+	if d.HasChange("cross_zone_load_balancing") {
+		log.Println("[INFO] inside modify attributes")
+		attrs := elb.ModifyLoadBalancerAttributes{
+			LoadBalancerName: d.Get("name").(string),
+			LoadBalancerAttributes: elb.LoadBalancerAttributes{
+				CrossZoneLoadBalancingEnabled: d.Get("cross_zone_load_balancing").(bool),
+			},
+		}
+		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+		if err != nil {
+			return fmt.Errorf("Failure configuring health check: %s", err)
+		}
+		d.SetPartial("cross_zone_load_balancing")
 	}
 
 	d.Partial(false)

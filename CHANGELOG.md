@@ -1,20 +1,56 @@
-## 0.3.2 (unreleased)
+## 0.3.6 (unreleased)
 
 FEATURES:
 
- * New element() function to index into arrays
+  * **New provider: `cloudstack`**
 
 IMPROVEMENTS:
 
-  * provider/aws: Support tenancy for aws_instance
-  * provider/aws: Support block devices for aws_instance
-  * provider/aws: Support virtual_name on block device
+  * **New resource: `heroku_cert`** - Manage Heroku app certs.
+  * provider/aws: Support `eu-central-1`, `cn-north-1`, and GovCloud. [GH-525]
+  * provider/aws: `route_table` can have tags. [GH-648]
+
+BUG FIXES:
+
+  * core: temporary/hidden files that look like Terraform configurations
+      are no longer loaded. [GH-548]
+  * core: Set types in resources now result in deterministic states,
+      resulting in cleaner plans. [GH-663]
+  * core: fix issue where "diff was not the same" would come up with
+      diffing lists. [GH-661]
+  * core: fix crash where module inputs weren't strings, and add more
+      validation around invalid types here. [GH-624]
+  * core: fix error when using a computed module output as an input to
+      another module. [GH-659]
+  * core: map overrides in "terraform.tfvars" no longer result in a syntax
+      error. [GH-647]
+  * provider/aws: Fix crash case when internet gateway is not attached
+      to any VPC. [GH-664]
+  * provider/aws: `vpc_id` is no longer required. [GH-667]
+  * provider/aws: `availability_zones` on ELB will contain more than one
+      AZ if it is set as such. [GH-682]
+
+## 0.3.5 (December 9, 2014)
+
+FEATURES:
+
+ * **Remote State**: State files can now be stored remotely via HTTP,
+     Consul, or HashiCorp's Atlas.
+ * **New Provider: `atlas`**: Retrieve artifacts for deployment from
+     HashiCorp's Atlas service.
+ * New `element()` function to index into arrays
+
+IMPROVEMENTS:
+
+  * provider/aws: Support tenancy for aws\_instance
+  * provider/aws: Support block devices for aws\_instance
+  * provider/aws: Support virtual\_name on block device
   * provider/aws: Improve RDS reliability (more grace time)
-  * provider/aws: Added aws_db_parameter_group resource
-  * provider/aws: Added tag support to aws_subnet
+  * provider/aws: Added aws\_db\_parameter\_group resource
+  * provider/aws: Added tag support to aws\_subnet
   * provider/aws: Routes in RouteTable are optional
-  * provider/aws: associate_public_ip_address on aws_launch_configuration
-  * provider/aws: Added aws_network_acl
+  * provider/aws: associate\_public\_ip\_address on aws\_launch\_configuration
+  * provider/aws: Added aws\_network\_acl
   * provider/aws: Ingress rules in security groups are optional
   * provider/aws: Support termination policy for ASG
   * provider/digitalocean: Improved droplet size compatibility

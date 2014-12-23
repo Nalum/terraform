@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -158,7 +159,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(
 			v.(*schema.Set).List())
 	}
-	
+
 	if v, ok := d.GetOk("termination_policies"); ok {
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
@@ -195,7 +196,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("name", g.Name)
-	d.Set("vpc_zone_identifier", g.VPCZoneIdentifier)
+	d.Set("vpc_zone_identifier", strings.Split(g.VPCZoneIdentifier, ","))
 
 	return nil
 }
@@ -296,17 +297,16 @@ func getAwsAutoscalingGroup(
 		return nil, fmt.Errorf("Error retrieving AutoScaling groups: %s", err)
 	}
 
-	// Verify AWS returned our sg
-	if len(describeGroups.AutoScalingGroups) != 1 ||
-		describeGroups.AutoScalingGroups[0].Name != d.Id() {
-		if err != nil {
-			return nil, fmt.Errorf(
-				"Unable to find AutoScaling group: %#v",
-				describeGroups.AutoScalingGroups)
+	// Search for the autoscaling group
+	for idx, asc := range describeGroups.AutoScalingGroups {
+		if asc.Name == d.Id() {
+			return &describeGroups.AutoScalingGroups[idx], nil
 		}
 	}
 
-	return &describeGroups.AutoScalingGroups[0], nil
+	// ASG not found
+	d.SetId("")
+	return nil, nil
 }
 
 func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
